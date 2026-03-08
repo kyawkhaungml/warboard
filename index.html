@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WAR BOARD</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: #1e1e1e;
+    --accent1: #e8ff47; /* acid yellow - leetcode */
+    --accent2: #ff6b35; /* orange - jobs */
+    --accent3: #47c9ff; /* cyan - project */
+    --accent4: #b047ff; /* purple - fitness */
+    --text: #f0f0f0;
+    --muted: #555;
+    --dim: #2a2a2a;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  /* Noise texture overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+  }
+
+  .brand {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .brand-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(42px, 8vw, 72px);
+    letter-spacing: 4px;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .brand-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .today-block {
+    text-align: right;
+  }
+
+  .today-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .today-msg {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* RULE BANNER */
+  .rule-banner {
+    background: var(--dim);
+    border-left: 3px solid var(--accent1);
+    padding: 12px 16px;
+    margin-bottom: 36px;
+    border-radius: 0 4px 4px 0;
+  }
+
+  .rule-banner p {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: #aaa;
+    letter-spacing: 1px;
+    line-height: 1.8;
+  }
+
+  .rule-banner strong {
+    color: var(--accent1);
+  }
+
+  /* GOALS GRID */
+  .goals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 36px;
+  }
+
+  @media (max-width: 600px) {
+    .goals-grid { grid-template-columns: 1fr; }
+  }
+
+  .goal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .goal-card:hover {
+    border-color: var(--card-color);
+  }
+
+  .goal-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--card-color);
+  }
+
+  .goal-card[data-goal="0"] { --card-color: var(--accent1); }
+  .goal-card[data-goal="1"] { --card-color: var(--accent2); }
+  .goal-card[data-goal="2"] { --card-color: var(--accent3); }
+  .goal-card[data-goal="3"] { --card-color: var(--accent4); }
+
+  .goal-label {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 13px;
+    letter-spacing: 3px;
+    color: var(--card-color);
+    margin-bottom: 6px;
+  }
+
+  .goal-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 14px;
+    line-height: 1.4;
+  }
+
+  /* Progress bar */
+  .progress-wrap {
+    margin-bottom: 12px;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+  }
+
+  .progress-count {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--card-color);
+    line-height: 1;
+  }
+
+  .progress-target {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .progress-bar-bg {
+    height: 4px;
+    background: var(--dim);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--card-color);
+    border-radius: 2px;
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    min-width: 2px;
+  }
+
+  /* Dot grid */
+  .dot-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 12px;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: var(--dim);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
+    flex-shrink: 0;
+  }
+
+  .dot.done {
+    background: var(--card-color);
+  }
+
+  .dot.today-dot {
+    outline: 2px solid var(--card-color);
+    outline-offset: 1px;
+  }
+
+  .dot:hover {
+    transform: scale(1.4);
+  }
+
+  /* CHECK IN SECTION */
+  .checkin-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .checkin-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .checkin-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent1);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
+  }
+
+  .checkin-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 3px;
+    color: var(--text);
+  }
+
+  .checkin-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  @media (max-width: 500px) {
+    .checkin-grid { grid-template-columns: 1fr; }
+  }
+
+  .checkin-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .checkin-btn:hover {
+    border-color: var(--btn-color);
+    background: color-mix(in srgb, var(--btn-color) 8%, var(--bg));
+  }
+
+  .checkin-btn.checked {
+    border-color: var(--btn-color);
+    background: color-mix(in srgb, var(--btn-color) 12%, var(--bg));
+  }
+
+  .checkin-btn[data-goal="0"] { --btn-color: var(--accent1); }
+  .checkin-btn[data-goal="1"] { --btn-color: var(--accent2); }
+  .checkin-btn[data-goal="2"] { --btn-color: var(--accent3); }
+  .checkin-btn[data-goal="3"] { --btn-color: var(--accent4); }
+
+  .checkin-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 2px solid var(--btn-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    font-size: 14px;
+  }
+
+  .checkin-btn.checked .checkin-icon {
+    background: var(--btn-color);
+  }
+
+  .checkin-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .checkin-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .checkin-desc {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* STREAK + STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 500px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+  }
+
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  .stat-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 4px;
+  }
+
+  /* MOTIVATIONAL FOOTER */
+  .motive-bar {
+    background: var(--dim);
+    border-radius: 6px;
+    padding: 16px 20px;
+    text-align: center;
+  }
+
+  .motive-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    letter-spacing: 4px;
+    color: var(--muted);
+  }
+
+  .motive-text span {
+    color: var(--accent1);
+  }
+
+  /* RESET CONFIRM */
+  .reset-area {
+    margin-top: 24px;
+    text-align: right;
+  }
+
+  .reset-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    padding: 6px 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:hover {
+    border-color: #ff4444;
+    color: #ff4444;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 20px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--text);
+    letter-spacing: 1px;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100;
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ALL DONE celebration */
+  .alldone-bar {
+    display: none;
+    background: color-mix(in srgb, var(--accent1) 10%, var(--surface));
+    border: 1px solid var(--accent1);
+    border-radius: 6px;
+    padding: 14px 20px;
+    margin-bottom: 16px;
+    text-align: center;
+  }
+
+  .alldone-bar.show {
+    display: block;
+    animation: fadeIn 0.4s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .alldone-text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 4px;
+    color: var(--accent1);
+  }
+
+  /* CUMULATIVE AVERAGE */
+  .cumulative-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 16px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 18px;
+    letter-spacing: 3px;
+    color: var(--text);
+  }
+
+  .section-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  .cumulative-big {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .cumulative-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 72px;
+    line-height: 1;
+    color: var(--accent1);
+  }
+
+  .cumulative-formula {
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    padding-bottom: 8px;
+  }
+
+  .cumulative-formula span {
+    color: var(--text);
+  }
+
+  .cumulative-bar-bg {
+    height: 6px;
+    background: var(--dim);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  .cumulative-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent1), #b8ff00);
+    border-radius: 3px;
+    transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .cumulative-note {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+
+  /* MONTHLY SECTION */
+  .monthly-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+
+  .month-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .month-row {
+    display: grid;
+    grid-template-columns: 110px 1fr auto;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .month-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--text);
+    letter-spacing: 1px;
+  }
+
+  .month-bar-bg {
+    height: 6px;
+    background: var(--dim);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .month-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+
+  .month-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 16px;
+    color: var(--text);
+    min-width: 44px;
+    text-align: right;
+  }
+
+  .month-detail {
+    grid-column: 2 / 4;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-top: -6px;
+  }
+
+  .month-current {
+    border-left: 2px solid var(--accent1);
+    padding-left: 10px;
+  }
+
+  .month-empty {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    padding: 20px 0;
+    letter-spacing: 2px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="brand">
+      <div class="brand-title">WAR BOARD</div>
+      <div class="brand-sub">Daily Execution Tracker</div>
+    </div>
+    <div class="today-block">
+      <div class="today-date" id="todayDate"></div>
+      <div class="today-msg">Peak window: <strong style="color:#e8ff47">6–9am</strong></div>
+    </div>
+  </header>
+
+  <div class="rule-banner">
+    <p>
+      <strong>THE ONLY RULE:</strong> Missing a day leaves a gap. Gaps are allowed. <strong>Quitting is not.</strong><br>
+      Show up again tomorrow. Your progress never resets. Every dot counts.
+    </p>
+  </div>
+
+  <!-- All done banner -->
+  <div class="alldone-bar" id="allDoneBar">
+    <div class="alldone-text">⚡ ALL FOUR DONE TODAY — YOU'RE LOCKED IN ⚡</div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-box">
+      <div class="stat-num" id="statDaysActive">0</div>
+      <div class="stat-label">Days Active</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" id="statCheckins">0</div>
+      <div class="stat-label">Total Check-ins</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" id="statStreak">0</div>
+      <div class="stat-label">Day Streak</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-num" id="statBestDay">0</div>
+      <div class="stat-label">Best Day %</div>
+    </div>
+  </div>
+
+  <!-- Goal cards -->
+  <div class="goals-grid" id="goalsGrid"></div>
+
+  <!-- Daily check-in -->
+  <div class="checkin-section">
+    <div class="checkin-header">
+      <div class="checkin-dot"></div>
+      <div class="checkin-title">TODAY'S CHECK-IN</div>
+    </div>
+    <div class="checkin-grid" id="checkinGrid"></div>
+  </div>
+
+  <!-- Cumulative Average -->
+  <div class="cumulative-section">
+    <div class="section-header">
+      <div class="section-title">CUMULATIVE AVERAGE</div>
+      <div class="section-sub">SINCE DAY ONE</div>
+    </div>
+    <div class="cumulative-big">
+      <div class="cumulative-pct" id="cumulativePct">0%</div>
+      <div class="cumulative-formula" id="cumulativeFormula">
+        — / — days tracked<br>
+        <span>No data yet</span>
+      </div>
+    </div>
+    <div class="cumulative-bar-bg">
+      <div class="cumulative-bar-fill" id="cumulativeBarFill" style="width: 0%"></div>
+    </div>
+    <div class="cumulative-note" id="cumulativeNote">CHECK IN DAILY TO BUILD YOUR AVERAGE</div>
+  </div>
+
+  <!-- Monthly Progress -->
+  <div class="monthly-section">
+    <div class="section-header">
+      <div class="section-title">MONTHLY PROGRESS</div>
+      <div class="section-sub">AVG DAILY COMPLETION PER MONTH</div>
+    </div>
+    <div class="month-list" id="monthList">
+      <div class="month-empty">NO HISTORY YET — CHECK IN TO START</div>
+    </div>
+  </div>
+
+  <!-- Motive bar -->
+  <div class="motive-bar">
+    <div class="motive-text" id="motiveText">SHOW UP. <span>STACK THE DOTS.</span> BECOME THE PERSON.</div>
+  </div>
+
+  <div class="reset-area">
+    <button class="reset-btn" onclick="confirmReset()">RESET ALL DATA</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GOALS = [
+  {
+    id: 0,
+    label: "LEETCODE",
+    title: "Practice LeetCode daily for SWE interviews",
+    target: 90,
+    unit: "days",
+    dots: 90,
+  },
+  {
+    id: 1,
+    label: "JOB APPS",
+    title: "Apply to jobs daily until 300 applications",
+    target: 300,
+    unit: "apps",
+    dots: 90,
+  },
+  {
+    id: 2,
+    label: "PROJECT",
+    title: "Build & publish coding project on GitHub",
+    target: 60,
+    unit: "sessions",
+    dots: 60,
+  },
+  {
+    id: 3,
+    label: "FITNESS",
+    title: "Work out daily toward 167lb & six packs",
+    target: 90,
+    unit: "sessions",
+    dots: 90,
+  },
+];
+
+const CHECKIN_ICONS = ["💻", "📨", "⚙️", "💪"];
+
+const MOTIVES = [
+  'SHOW UP. <span>STACK THE DOTS.</span> BECOME THE PERSON.',
+  'GAPS ARE ALLOWED. <span>QUITTING IS NOT.</span>',
+  'THE MORNING IS YOURS. <span>USE IT.</span>',
+  'DEADLINE VERSION OF YOU <span>EXISTS EVERYDAY.</span>',
+  'SMALL SESSIONS. <span>MASSIVE OUTCOMES.</span>',
+  'NO ONE IS COMING. <span>YOU ARE IT.</span>',
+];
+
+// --- State Management ---
+function getTodayKey() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function loadState() {
+  try {
+    return JSON.parse(localStorage.getItem('warboard_v2') || '{}');
+  } catch { return {}; }
+}
+
+function saveState(s) {
+  localStorage.setItem('warboard_v2', JSON.stringify(s));
+}
+
+function getState() {
+  const s = loadState();
+  if (!s.goalCounts) s.goalCounts = [0, 0, 0, 0];
+  if (!s.history) s.history = {}; // { "YYYY-MM-DD": [0,1,2,3] boolean array }
+  return s;
+}
+
+// --- Rendering ---
+function render() {
+  const s = getState();
+  const today = getTodayKey();
+  const todayChecked = s.history[today] || [false, false, false, false];
+
+  // Date display
+  const d = new Date();
+  document.getElementById('todayDate').textContent =
+    d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
+
+  // Motive rotation
+  const motiveIdx = Math.floor(Date.now() / (1000 * 60 * 60 * 6)) % MOTIVES.length;
+  document.getElementById('motiveText').innerHTML = MOTIVES[motiveIdx];
+
+  // Stats
+  const allDays = Object.keys(s.history);
+  const daysActive = allDays.filter(d => s.history[d].some(Boolean)).length;
+  const totalCheckins = allDays.reduce((sum, d) => sum + s.history[d].filter(Boolean).length, 0);
+  
+  // streak: consecutive days (ending today or yesterday) with at least 1 check-in
+  let streak = 0;
+  const check = new Date(today);
+  while (true) {
+    const key = check.toISOString().split('T')[0];
+    const dayData = s.history[key];
+    if (dayData && dayData.some(Boolean)) {
+      streak++;
+      check.setDate(check.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  const bestDay = allDays.length === 0 ? 0 :
+    Math.max(...allDays.map(d => Math.round((s.history[d].filter(Boolean).length / 4) * 100)));
+
+  document.getElementById('statDaysActive').textContent = daysActive;
+  document.getElementById('statCheckins').textContent = totalCheckins;
+  document.getElementById('statStreak').textContent = streak;
+  document.getElementById('statBestDay').textContent = bestDay + '%';
+
+  // Goal cards
+  const grid = document.getElementById('goalsGrid');
+  grid.innerHTML = '';
+  GOALS.forEach((g, i) => {
+    const count = s.goalCounts[i];
+    const pct = Math.min((count / g.target) * 100, 100);
+
+    // Build dot history for this goal
+    const dotDays = Object.keys(s.history).sort();
+    
+    const card = document.createElement('div');
+    card.className = 'goal-card';
+    card.setAttribute('data-goal', i);
+
+    // Build dots based on target days
+    let dotsHTML = '';
+    for (let d = 0; d < g.dots; d++) {
+      const dayKey = dotDays[d];
+      const done = dayKey && s.history[dayKey] && s.history[dayKey][i];
+      const isToday = dayKey === today;
+      dotsHTML += `<div class="dot${done ? ' done' : ''}${isToday ? ' today-dot' : ''}" title="Day ${d+1}"></div>`;
+    }
+
+    card.innerHTML = `
+      <div class="goal-label">${g.label}</div>
+      <div class="goal-title">${g.title}</div>
+      <div class="progress-wrap">
+        <div class="progress-meta">
+          <div class="progress-count">${count}</div>
+          <div class="progress-target">/ ${g.target} ${g.unit}</div>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" style="width: ${Math.max(pct, 1)}%"></div>
+        </div>
+      </div>
+      <div class="dot-grid">${dotsHTML}</div>
+    `;
+    grid.appendChild(card);
+  });
+
+  // Check-in buttons
+  const checkinGrid = document.getElementById('checkinGrid');
+  checkinGrid.innerHTML = '';
+  GOALS.forEach((g, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'checkin-btn' + (todayChecked[i] ? ' checked' : '');
+    btn.setAttribute('data-goal', i);
+    btn.onclick = () => toggleCheckin(i);
+    btn.innerHTML = `
+      <div class="checkin-icon">${todayChecked[i] ? '✓' : CHECKIN_ICONS[i]}</div>
+      <div class="checkin-text">
+        <div class="checkin-name">${g.label}</div>
+        <div class="checkin-desc">${todayChecked[i] ? 'DONE TODAY' : 'TAP TO CHECK IN'}</div>
+      </div>
+    `;
+    checkinGrid.appendChild(btn);
+  });
+
+  // --- Cumulative Average ---
+  // Count total check-ins across all days vs possible (days * 4 goals)
+  const sortedDays = Object.keys(s.history).sort();
+  const totalDays = sortedDays.length;
+  const totalPossible = totalDays * 4;
+  const totalDone = sortedDays.reduce((sum, dk) => sum + s.history[dk].filter(Boolean).length, 0);
+  const cumulativePct = totalPossible === 0 ? 0 : Math.round((totalDone / totalPossible) * 100);
+
+  document.getElementById('cumulativePct').textContent = cumulativePct + '%';
+  document.getElementById('cumulativeBarFill').style.width = cumulativePct + '%';
+
+  if (totalDays > 0) {
+    const startDate = sortedDays[0];
+    document.getElementById('cumulativeFormula').innerHTML =
+      `${totalDone} check-ins / ${totalDays} days tracked<br>` +
+      `<span>(${totalDone} ÷ ${totalDays} days × 4 goals = ${cumulativePct}%)</span>`;
+    document.getElementById('cumulativeNote').textContent =
+      `STARTED ${new Date(startDate).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}).toUpperCase()} · KEEP STACKING`;
+  }
+
+  // --- Monthly Progress ---
+  const monthMap = {}; // { "2025-03": { done: N, possible: N, days: N } }
+  sortedDays.forEach(dk => {
+    const monthKey = dk.slice(0, 7); // "YYYY-MM"
+    if (!monthMap[monthKey]) monthMap[monthKey] = { done: 0, possible: 0, days: 0 };
+    monthMap[monthKey].done += s.history[dk].filter(Boolean).length;
+    monthMap[monthKey].possible += 4;
+    monthMap[monthKey].days++;
+  });
+
+  const monthList = document.getElementById('monthList');
+  const monthKeys = Object.keys(monthMap).sort().reverse(); // most recent first
+  const currentMonthKey = today.slice(0, 7);
+
+  const MONTH_COLORS = ['#e8ff47','#ff6b35','#47c9ff','#b047ff','#ff47a3','#47ffb8'];
+
+  if (monthKeys.length === 0) {
+    monthList.innerHTML = '<div class="month-empty">NO HISTORY YET — CHECK IN TO START</div>';
+  } else {
+    monthList.innerHTML = '';
+    monthKeys.forEach((mk, idx) => {
+      const { done, possible, days } = monthMap[mk];
+      const pct = Math.round((done / possible) * 100);
+      const color = MONTH_COLORS[idx % MONTH_COLORS.length];
+      const isCurrentMonth = mk === currentMonthKey;
+      const [yr, mo] = mk.split('-');
+      const monthName = new Date(yr, parseInt(mo) - 1, 1)
+        .toLocaleDateString('en-US', { month: 'long', year: 'numeric' }).toUpperCase();
+
+      const row = document.createElement('div');
+      row.style.display = 'grid';
+      row.style.gridTemplateColumns = '110px 1fr auto';
+      row.style.alignItems = 'center';
+      row.style.gap = '12px';
+      if (isCurrentMonth) {
+        row.style.borderLeft = `2px solid ${color}`;
+        row.style.paddingLeft = '10px';
+      }
+
+      const daysInMonth = new Date(parseInt(yr), parseInt(mo), 0).getDate();
+      const daysLabel = isCurrentMonth
+        ? `${days} of ${daysInMonth} days logged · ${done}/${possible} check-ins`
+        : `${days} days logged · ${done}/${possible} check-ins`;
+
+      row.innerHTML = `
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text);letter-spacing:1px">${monthName.split(' ')[0]} ${yr}</div>
+        <div style="height:6px;background:var(--dim);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:3px;transition:width 0.6s ease"></div>
+        </div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:${color};min-width:44px;text-align:right">${pct}%</div>
+        <div style="grid-column:2/4;font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);letter-spacing:1px;margin-top:-4px">${daysLabel}</div>
+      `;
+      monthList.appendChild(row);
+    });
+  }
+
+  // All done banner
+  const allDone = todayChecked.every(Boolean);
+  document.getElementById('allDoneBar').classList.toggle('show', allDone);
+}
+
+function toggleCheckin(goalIdx) {
+  const s = getState();
+  const today = getTodayKey();
+  if (!s.history[today]) s.history[today] = [false, false, false, false];
+
+  const wasChecked = s.history[today][goalIdx];
+  s.history[today][goalIdx] = !wasChecked;
+
+  if (!wasChecked) {
+    // Increment count
+    s.goalCounts[goalIdx] = (s.goalCounts[goalIdx] || 0) + 1;
+    showToast(GOALS[goalIdx].label + ' ✓ LOCKED IN');
+  } else {
+    s.goalCounts[goalIdx] = Math.max(0, (s.goalCounts[goalIdx] || 0) - 1);
+    showToast(GOALS[goalIdx].label + ' — UNCHECKED');
+  }
+
+  saveState(s);
+  render();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function confirmReset() {
+  if (confirm('This will erase all your progress. Are you sure?')) {
+    localStorage.removeItem('warboard_v2');
+    showToast('ALL DATA CLEARED');
+    render();
+  }
+}
+
+// Init
+render();
+// Re-render at midnight
+const now = new Date();
+const msToMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1) - now;
+setTimeout(() => { render(); setInterval(render, 86400000); }, msToMidnight);
+</script>
+</body>
+</html>
