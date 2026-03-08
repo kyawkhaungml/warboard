@@ -128,10 +128,4 @@ All your check-in data is stored in your browser's `localStorage` under the key 
 
 ---
 
-## License
-
-MIT. Do whatever you want with it. Just don't sell it without changes and call it your own.
-
----
-
 *Built by a tired CS student who needed to see the dots stack up.*
