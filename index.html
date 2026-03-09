@@ -805,10 +805,28 @@ function saveState(s) {
   localStorage.setItem('warboard_v2', JSON.stringify(s));
 }
 
+// One-time migration: shift any future-dated history keys back by 1 day.
+// These were created by the old bug where toISOString() stored UTC date instead
+// of local date, causing check-ins made after 7pm EST to land on tomorrow's key.
+function migrateUTCKeys(s) {
+  const today = getTodayKey();
+  Object.keys(s.history || {}).forEach(key => {
+    if (key > today) {
+      const d = new Date(key + 'T12:00:00'); // noon avoids DST edge cases
+      d.setDate(d.getDate() - 1);
+      const fixed = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      if (!s.history[fixed]) s.history[fixed] = s.history[key];
+      delete s.history[key];
+    }
+  });
+}
+
 function getState() {
   const s = loadState();
   if (!s.goalCounts) s.goalCounts = [0, 0, 0, 0];
   if (!s.history) s.history = {}; // { "YYYY-MM-DD": [0,1,2,3] boolean array }
+  migrateUTCKeys(s);
+  saveState(s);
   return s;
 }
 
